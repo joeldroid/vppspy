@@ -1,0 +1,7 @@
+﻿services:
+  vppspy:
+    image: vppspy
+    build:
+      context: .
+      dockerfile: VppSpy/Dockerfile
+
