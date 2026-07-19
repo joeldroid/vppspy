@@ -1,8 +1,13 @@
+using VppSpy.GoodWe;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Services.Configure<GoodWeOptions>(builder.Configuration.GetSection(GoodWeOptions.SectionName));
+builder.Services.AddSingleton<GoodWeModbusClient>();
 
 var app = builder.Build();
 
@@ -11,6 +16,28 @@ if (app.Environment.IsDevelopment())
 {
   app.MapOpenApi();
 }
+
+app.MapGet("/api/goodwe/device-info", async (GoodWeModbusClient client, CancellationToken cancellationToken) =>
+  {
+    try
+    {
+      var info = await client.ReadDeviceInfoAsync(cancellationToken);
+      return Results.Ok(info);
+    }
+    catch (GoodWeCommunicationException ex)
+    {
+      return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status502BadGateway,
+        title: "GoodWe communication failed");
+    }
+  })
+  .WithName("GetGoodWeDeviceInfo");
+
+app.MapGet("/api/goodwe/discover", async (GoodWeModbusClient client, CancellationToken cancellationToken) =>
+  {
+    var results = await client.DiscoverAsync(cancellationToken);
+    return Results.Ok(results);
+  })
+  .WithName("DiscoverGoodWeDevices");
 
 var summaries = new[]
 {
